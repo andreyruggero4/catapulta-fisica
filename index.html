@@ -1,163 +1,923 @@
+
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catapulta - Desafio de Física</title>
-    <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f0f0; }
-        #canvas-container { position: relative; border: 2px solid #555; background: #87CEEB; margin-top: 20px; }
-        canvas { display: block; background: linear-gradient(to bottom, #87CEEB, #E0F6FF); }
-        .controls { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: -50px; z-index: 10; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .equations-box { grid-column: span 2; background: #fffde7; padding: 10px; border-left: 5px solid #fbc02d; font-style: italic; }
-        .input-group { display: flex; flex-direction: column; }
-        button { grid-column: span 2; padding: 10px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #1b5e20; }
-        .result-msg { grid-column: span 2; text-align: center; font-weight: bold; height: 20px; }
-    </style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Catapulta — Física do Lançamento Oblíquo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0b1120;
+      --panel:    #111827;
+      --border:   #2a3a5c;
+      --gold:     #f0c040;
+      --gold2:    #d4a010;
+      --green:    #22c55e;
+      --red:      #ef4444;
+      --blue:     #60a5fa;
+      --text:     #e2e8f0;
+      --muted:    #94a3b8;
+      --accent:   #3b82f6;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Lora', serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── HEADER ── */
+    header {
+      width: 100%;
+      text-align: center;
+      padding: 18px 16px 8px;
+      background: linear-gradient(180deg, #0d1a35 0%, transparent 100%);
+    }
+    header h1 {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(1.3rem, 3.5vw, 2.1rem);
+      color: var(--gold);
+      letter-spacing: .1em;
+      text-shadow: 0 0 24px #f0c04055;
+    }
+    header p { color: var(--muted); font-size: .9rem; font-style: italic; margin-top:3px; }
+
+    /* ── HUD ── */
+    .hud {
+      display: flex; gap: 24px;
+      background: #0d1829;
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 7px 28px;
+      margin: 10px 0 8px;
+      font-family: 'Cinzel', serif;
+      font-size: .95rem;
+    }
+    .hud span { color: var(--gold); font-size: 1.1rem; font-weight: 700; }
+
+    /* ── LAYOUT ── */
+    .game-wrap {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 1160px;
+      padding: 0 12px 24px;
+    }
+
+    /* ── CANVAS ── */
+    .canvas-col { flex: 1; min-width: 0; }
+    #canvas-wrap { position: relative; }
+    canvas {
+      display: block;
+      width: 100%;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 0 40px #3b82f610, 0 8px 32px #00000088;
+      cursor: crosshair;
+    }
+    #flash {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -60%);
+      font-family: 'Cinzel', serif;
+      font-size: 1.8rem;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .3s;
+      text-shadow: 0 0 20px #000a;
+      white-space: nowrap;
+    }
+
+    .hint-bar {
+      margin-top: 8px;
+      background: #0d1829;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: .88rem;
+      color: var(--muted);
+      min-height: 36px;
+      transition: all .3s;
+    }
+    .hint-bar.active { color: var(--gold); border-color: var(--gold2); }
+
+    /* ── PANEL ── */
+    .panel {
+      width: 320px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .card-title {
+      font-family: 'Cinzel', serif;
+      font-size: .85rem;
+      letter-spacing: .08em;
+      color: var(--gold);
+      margin-bottom: 10px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* formulas */
+    .formula-block {
+      background: #0d1829;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: .92rem;
+      color: var(--blue);
+      line-height: 1.9;
+      font-style: italic;
+    }
+    .formula-block b { color: var(--text); font-style: normal; }
+
+    /* dados */
+    .dados-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: .88rem;
+    }
+    .dado {
+      background: #0d1829;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+    .dado label { color: var(--muted); font-size: .78rem; display: block; }
+    .dado strong { color: var(--gold); font-size: 1rem; font-family: 'Cinzel', serif; }
+
+    /* quiz */
+    .quiz-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .quiz-row label {
+      font-size: .82rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .quiz-row .input-wrap {
+      display: flex; gap: 6px; align-items: center;
+    }
+    .quiz-row input {
+      flex: 1;
+      background: #0d1829;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'Lora', serif;
+      font-size: .95rem;
+      padding: 7px 10px;
+      outline: none;
+      transition: border .2s;
+    }
+    .quiz-row input:focus { border-color: var(--accent); }
+    .quiz-row input.ok  { border-color: var(--green) !important; background: #052010; }
+    .quiz-row input.err { border-color: var(--red)   !important; background: #1a0505; }
+    .unit { font-size: .8rem; color: var(--muted); white-space: nowrap; }
+
+    .quiz-feedback {
+      font-size: .8rem;
+      min-height: 16px;
+      margin-top: 2px;
+    }
+    .quiz-feedback.ok  { color: var(--green); }
+    .quiz-feedback.err { color: var(--red); }
+
+    /* buttons */
+    .btn {
+      font-family: 'Cinzel', serif;
+      padding: 9px 20px;
+      font-size: .88rem;
+      letter-spacing: .06em;
+      border-radius: 6px;
+      border: 1.5px solid;
+      cursor: pointer;
+      transition: all .18s;
+      width: 100%;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #1e3a6e, #2a52a0);
+      border-color: #3b82f6;
+      color: #fff;
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, #2a52a0, #3b5abb); box-shadow: 0 0 16px #3b82f640; }
+    .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-reset {
+      background: linear-gradient(135deg, #1a0e05, #3b1f08);
+      border-color: var(--gold2);
+      color: var(--gold);
+    }
+    .btn-reset:hover { box-shadow: 0 0 16px #f0c04030; }
+
+    /* gabarito */
+    #gabarito {
+      display: none;
+      background: #0b1a0b;
+      border: 1px solid #22c55e44;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: .85rem;
+      line-height: 1.8;
+      color: var(--text);
+    }
+    #gabarito b { color: var(--green); }
+    #gabarito .step { color: var(--muted); font-style: italic; font-size: .8rem; }
+
+    /* state: panel hidden until launch */
+    #panel-quiz { display: none; }
+    #panel-formulas { display: none; }
+
+    /* scoreboard */
+    .score-badge {
+      display: inline-block;
+      background: var(--gold);
+      color: #000;
+      font-family: 'Cinzel', serif;
+      font-weight: 700;
+      font-size: .75rem;
+      border-radius: 20px;
+      padding: 1px 8px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    @media (max-width: 740px) {
+      .game-wrap { flex-direction: column; }
+      .panel { width: 100%; }
+    }
+  </style>
 </head>
 <body>
 
-    <h2>Desafio da Catapulta: Lançamento Oblíquo</h2>
+<header>
+  <h1>⚔️ Catapulta — Física do Lançamento Oblíquo</h1>
+  <p>Lance a pedra, observe a trajetória e calcule os valores pedidos para ganhar pontos!</p>
+</header>
 
-    <div id="canvas-container">
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
+<div class="hud">
+  <div>Pontuação: <span id="score">0</span></div>
+  <div>Lançamentos: <span id="shots">0</span></div>
+  <div>Acertos: <span id="hits">0</span></div>
+</div>
+
+<div class="game-wrap">
+
+  <!-- CANVAS -->
+  <div class="canvas-col">
+    <div id="canvas-wrap">
+      <canvas id="game" width="820" height="440"></canvas>
+      <div id="flash"></div>
+    </div>
+    <div class="hint-bar" id="hint">
+      🖱️ Clique e arraste a pedra para trás, depois solte para lançar!
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <div class="panel">
+
+    <!-- FÓRMULAS -->
+    <div class="card" id="panel-formulas">
+      <div class="card-title">📐 Fórmulas — Lançamento Oblíquo</div>
+      <div class="formula-block">
+        <b>Componentes da velocidade inicial:</b><br>
+        v₀ₓ = v₀ · cos(θ)<br>
+        v₀ᵧ = v₀ · sen(θ)<br><br>
+        <b>Altura máxima:</b><br>
+        H<sub>max</sub> = v₀ᵧ² / (2g)<br><br>
+        <b>Tempo para H<sub>max</sub>:</b><br>
+        t<sub>Hmax</sub> = v₀ᵧ / g
+      </div>
     </div>
 
-    <div class="controls">
-        <div class="equations-box">
-            <strong>Fórmulas do Desafio:</strong><br>
-            Altura Máxima: $H = \frac{v_0^2 \cdot \sin^2(\theta)}{2g}$ | 
-            Tempo Total: $t = \frac{2 \cdot v_0 \cdot \sin(\theta)}{g}$ <br>
-            <small>*Considere $g = 10 m/s^2$</small>
-        </div>
-
-        <div class="input-group">
-            <label>Velocidade Inicial ($v_0$): <span id="vVal">50</span> m/s</label>
-            <input type="range" id="velInput" min="20" max="80" value="50">
-        </div>
-
-        <div class="input-group">
-            <label>Ângulo ($\theta$): <span id="aVal">45</span>°</label>
-            <input type="range" id="angInput" min="10" max="80" value="45">
-        </div>
-
-        <div class="input-group">
-            <label>Sua resposta para Altura Máxima (m):</label>
-            <input type="number" id="userHeight" step="0.01">
-        </div>
-
-        <div class="input-group">
-            <label>Sua resposta para Tempo Total (s):</label>
-            <input type="number" id="userTime" step="0.01">
-        </div>
-
-        <button onclick="launch()">Lançar e Verificar!</button>
-        <div id="feedback" class="result-msg"></div>
+    <!-- DADOS DO LANÇAMENTO -->
+    <div class="card" id="panel-dados" style="display:none">
+      <div class="card-title">🎯 Dados do seu lançamento</div>
+      <div class="dados-grid">
+        <div class="dado"><label>Velocidade inicial (v₀)</label><strong id="d-v0">—</strong></div>
+        <div class="dado"><label>Ângulo (θ)</label><strong id="d-ang">—</strong></div>
+        <div class="dado"><label>v₀ₓ = v₀·cos(θ)</label><strong id="d-v0x">—</strong></div>
+        <div class="dado"><label>v₀ᵧ = v₀·sen(θ)</label><strong id="d-v0y">—</strong></div>
+        <div class="dado"><label>Gravidade (g)</label><strong>10 m/s²</strong></div>
+        <div class="dado"><label>Escala</label><strong id="d-scale">—</strong></div>
+      </div>
     </div>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const g = 10; // Gravidade simplificada para o exercício
+    <!-- QUIZ -->
+    <div class="card" id="panel-quiz">
+      <div class="card-title">✏️ Calcule e responda <span class="score-badge">+pts</span></div>
 
-        let projectile = { x: 50, y: 350, vx: 0, vy: 0, active: false };
-        let path = [];
+      <div class="quiz-row">
+        <label>1. Altura máxima atingida — H<sub>max</sub></label>
+        <div class="input-wrap">
+          <input type="number" id="inp-hmax" placeholder="Ex: 12.5" step="0.1" disabled/>
+          <span class="unit">metros</span>
+        </div>
+        <div class="quiz-feedback" id="fb-hmax"></div>
+      </div>
 
-        function drawScene() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Chão
-            ctx.fillStyle = "#4caf50";
-            ctx.fillRect(0, 350, canvas.width, 50);
+      <div class="quiz-row">
+        <label>2. Tempo para atingir H<sub>max</sub> — t<sub>Hmax</sub></label>
+        <div class="input-wrap">
+          <input type="number" id="inp-thmax" placeholder="Ex: 1.8" step="0.1" disabled/>
+          <span class="unit">segundos</span>
+        </div>
+        <div class="quiz-feedback" id="fb-thmax"></div>
+      </div>
 
-            // Catapulta (representação simples)
-            ctx.fillStyle = "#795548";
-            ctx.fillRect(40, 330, 20, 20);
+      <button class="btn btn-primary" id="btn-check" disabled>✅ Verificar respostas</button>
 
-            // Trajetória
-            ctx.beginPath();
-            ctx.setLineDash([5, 5]);
-            ctx.strokeStyle = "rgba(0,0,0,0.2)";
-            path.forEach((p, i) => {
-                if(i === 0) ctx.moveTo(p.x, p.y);
-                else ctx.lineTo(p.x, p.y);
-            });
-            ctx.stroke();
-            ctx.setLineDash([]);
+      <div id="gabarito" style="margin-top:12px"></div>
+    </div>
 
-            // Pedra
-            ctx.beginPath();
-            ctx.arc(projectile.x, projectile.y, 8, 0, Math.PI * 2);
-            ctx.fillStyle = "#424242";
-            ctx.fill();
-            ctx.closePath();
-        }
+    <!-- RESET -->
+    <button class="btn btn-reset" id="btn-reset">🔄 Novo lançamento</button>
 
-        function launch() {
-            if(projectile.active) return;
+  </div>
+</div>
 
-            const v0 = parseFloat(document.getElementById('velInput').value);
-            const angleDeg = parseFloat(document.getElementById('angInput').value);
-            const angleRad = angleDeg * Math.PI / 180;
+<script>
+// ════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════
+const SCALE   = 10;   // 1 px = 0.1 m  →  10 px = 1 m
+const G_REAL  = 10;   // m/s² (arredondado p/ EM)
+const G_PX    = G_REAL / SCALE;   // px/frame² equivalente (ajustado abaixo)
+const FPS_ADJ = 60;
 
-            // Cálculos Reais (Gabarito oculto)
-            const realTime = (2 * v0 * Math.sin(angleRad)) / g;
-            const realHeight = (Math.pow(v0, 2) * Math.pow(Math.sin(angleRad), 2)) / (2 * g);
+const canvas  = document.getElementById('game');
+const ctx     = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
 
-            // Respostas do Aluno
-            const ansH = parseFloat(document.getElementById('userHeight').value);
-            const ansT = parseFloat(document.getElementById('userTime').value);
+const groundY  = H - 60;
+const slingX   = 130;
+const slingY   = groundY - 85;
+const R        = 13;
 
-            const feedback = document.getElementById('feedback');
+// DOM refs
+const scoreEl   = document.getElementById('score');
+const shotsEl   = document.getElementById('shots');
+const hitsEl    = document.getElementById('hits');
+const flashEl   = document.getElementById('flash');
+const hintEl    = document.getElementById('hint');
+const inpHmax   = document.getElementById('inp-hmax');
+const inpThmax  = document.getElementById('inp-thmax');
+const btnCheck  = document.getElementById('btn-check');
+const btnReset  = document.getElementById('btn-reset');
+const gabaritoEl= document.getElementById('gabarito');
+const panelFormulas = document.getElementById('panel-formulas');
+const panelDados    = document.getElementById('panel-dados');
+const panelQuiz     = document.getElementById('panel-quiz');
 
-            // Verificação (margem de erro de 5%)
-            const errorH = Math.abs(ansH - realHeight) / realHeight;
-            const errorT = Math.abs(ansT - realTime) / realTime;
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let score=0, shots=0, hits=0;
+let dragging=false, launched=false, settled=false;
+let particles=[];
+let trail=[];          // trajetória real px
 
-            if (errorH < 0.05 && errorT < 0.05) {
-                feedback.style.color = "green";
-                feedback.innerText = "Cálculos exatos! Lançamento autorizado.";
-                startAnimation(v0, angleRad);
-            } else {
-                feedback.style.color = "red";
-                feedback.innerText = "Revise seus cálculos! O lançamento falhou.";
-            }
-        }
+let proj = { x:slingX, y:slingY, vx:0, vy:0 };
 
-        function startAnimation(v0, angle) {
-            projectile.x = 50;
-            projectile.y = 350;
-            projectile.vx = v0 * Math.cos(angle) * 0.5; // Escala para o canvas
-            projectile.vy = -v0 * Math.sin(angle) * 0.5;
-            projectile.active = true;
-            path = [];
-            animate();
-        }
+// Physics values (real units)
+let realV0=0, realAngle=0, realV0x=0, realV0y=0;
+let realHmax=0, realThmax=0;
 
-        function animate() {
-            if(!projectile.active) return;
+// Canvas physics
+let gravPx = 0;   // px / frame²
+const FRAME_DT = 1/FPS_ADJ;
 
-            projectile.x += projectile.vx;
-            projectile.y += projectile.vy;
-            projectile.vy += g * 0.01; // Gravidade aplicada ao frame
+let target = spawnTarget();
 
-            path.push({x: projectile.x, y: projectile.y});
+// ════════════════════════════════════════
+//  TARGET
+// ════════════════════════════════════════
+function spawnTarget() {
+  const w = 36 + Math.random()*20;
+  const h = 44 + Math.random()*20;
+  return {
+    x: 560 + Math.random()*180,
+    y: groundY - h,
+    w, h, alive: true
+  };
+}
 
-            if(projectile.y >= 350) {
-                projectile.y = 350;
-                projectile.active = false;
-            }
+// ════════════════════════════════════════
+//  RESET
+// ════════════════════════════════════════
+function resetProj() {
+  proj.x = slingX; proj.y = slingY;
+  proj.vx = 0; proj.vy = 0;
+  launched = false; dragging = false; settled = false;
+  trail = [];
+  particles = [];
+  gabaritoEl.style.display = 'none';
+  inpHmax.value=''; inpThmax.value='';
+  inpHmax.className=''; inpThmax.className='';
+  document.getElementById('fb-hmax').textContent='';
+  document.getElementById('fb-thmax').textContent='';
+  document.getElementById('fb-hmax').className='quiz-feedback';
+  document.getElementById('fb-thmax').className='quiz-feedback';
+  inpHmax.disabled=true; inpThmax.disabled=true; btnCheck.disabled=true;
+  panelFormulas.style.display='none';
+  panelDados.style.display='none';
+  panelQuiz.style.display='none';
+  hintEl.textContent='🖱️ Clique e arraste a pedra para trás, depois solte para lançar!';
+  hintEl.className='hint-bar';
+}
 
-            drawScene();
-            requestAnimationFrame(animate);
-        }
+function fullReset() {
+  resetProj();
+  target = spawnTarget();
+  pickPreset();
+}
 
-        // Listeners para os sliders
-        document.getElementById('velInput').addEventListener('input', e => document.getElementById('vVal').innerText = e.target.value);
-        document.getElementById('angInput').addEventListener('input', e => document.getElementById('aVal').innerText = e.target.value);
+// ════════════════════════════════════════
+//  PRESETS — valores "bonitos" para EM
+// ════════════════════════════════════════
+const V0_LIST    = [15, 20, 25, 30];
+const ANGLE_LIST = [30, 45, 60];
 
-        drawScene();
-    </script>
+// Escolhe combinação aleatória a cada rodada
+let presetV0 = 20, presetAngle = 45;
+
+function pickPreset() {
+  presetV0    = V0_LIST[Math.floor(Math.random() * V0_LIST.length)];
+  presetAngle = ANGLE_LIST[Math.floor(Math.random() * ANGLE_LIST.length)];
+}
+
+// ════════════════════════════════════════
+//  PHYSICS SETUP (after launch)
+// ════════════════════════════════════════
+function setupPhysics() {
+  const angleRad = presetAngle * Math.PI / 180;
+
+  realV0    = presetV0;
+  realAngle = presetAngle;
+  realV0x   = parseFloat((realV0 * Math.cos(angleRad)).toFixed(2));
+  realV0y   = parseFloat((realV0 * Math.sin(angleRad)).toFixed(2));
+
+  // Hmax e Thmax reais (valores limpos)
+  realThmax = parseFloat((realV0y / G_REAL).toFixed(2));
+  realHmax  = parseFloat((realV0y * realV0y / (2 * G_REAL)).toFixed(2));
+
+  // Converte v real → px/frame para o canvas
+  // gravPx em px/frame²
+  gravPx = G_REAL / SCALE / FPS_ADJ;
+
+  // velocidade em px/frame (mesmo SCALE, mesma lógica)
+  const vMagPx = realV0 / SCALE;
+  proj.vx =  vMagPx * Math.cos(angleRad);
+  proj.vy = -vMagPx * Math.sin(angleRad); // canvas y invertido
+
+  // Atualiza painel dados
+  document.getElementById('d-v0').textContent  = realV0 + ' m/s';
+  document.getElementById('d-ang').textContent = realAngle + '°';
+  document.getElementById('d-v0x').textContent = realV0x + ' m/s';
+  document.getElementById('d-v0y').textContent = realV0y + ' m/s';
+  document.getElementById('d-scale').textContent = '1px = 0,1m';
+}
+
+// ════════════════════════════════════════
+//  PARTICLES
+// ════════════════════════════════════════
+function spawnParticles(x, y, color) {
+  for (let i=0; i<24; i++) {
+    const a = Math.random()*Math.PI*2;
+    const s = 2+Math.random()*7;
+    particles.push({ x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s-3,
+                     life:1, color, r:3+Math.random()*5 });
+  }
+}
+function updateParticles() {
+  particles = particles.filter(p=>p.life>0);
+  particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=.2; p.life-=.03; p.r*=.97; });
+}
+
+// ════════════════════════════════════════
+//  FLASH MSG
+// ════════════════════════════════════════
+function flash(msg, color='#f0c040') {
+  flashEl.textContent=msg; flashEl.style.color=color; flashEl.style.opacity='1';
+  clearTimeout(flashEl._t);
+  flashEl._t=setTimeout(()=>flashEl.style.opacity='0', 1100);
+}
+
+// ════════════════════════════════════════
+//  COLLISION
+// ════════════════════════════════════════
+function checkHit() {
+  if (!target.alive) return false;
+  return proj.x+R>target.x && proj.x-R<target.x+target.w &&
+         proj.y+R>target.y && proj.y-R<target.y+target.h;
+}
+
+// ════════════════════════════════════════
+//  UPDATE
+// ════════════════════════════════════════
+function update() {
+  if (!launched || settled) return;
+  proj.vy += gravPx;
+  proj.x  += proj.vx;
+  proj.y  += proj.vy;
+  trail.push({x:proj.x, y:proj.y});
+
+  if (checkHit()) {
+    spawnParticles(proj.x, proj.y, '#f0c040');
+    flash('💥 Acertou o alvo! Agora calcule!', '#22c55e');
+    target.alive = false;
+    onSettle();
+    return;
+  }
+  if (proj.y+R >= groundY) {
+    proj.y = groundY - R;
+    onSettle();
+  }
+  if (proj.x > W+60 || proj.x < -60) onSettle();
+}
+
+function onSettle() {
+  settled = true;
+  shots++;
+  scoreEl; shotsEl.textContent = shots;
+
+  // exibe painel
+  panelFormulas.style.display='block';
+  panelDados.style.display='block';
+  panelQuiz.style.display='block';
+  inpHmax.disabled=false; inpThmax.disabled=false; btnCheck.disabled=false;
+
+  hintEl.textContent = '📝 Observe a trajetória marcada e responda às perguntas no painel →';
+  hintEl.className = 'hint-bar active';
+}
+
+// ════════════════════════════════════════
+//  DRAW
+// ════════════════════════════════════════
+function drawSky() {
+  const g = ctx.createLinearGradient(0,0,0,groundY);
+  g.addColorStop(0,'#06102b'); g.addColorStop(.7,'#1a3060'); g.addColorStop(1,'#3a6090');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,groundY);
+}
+
+function drawStars() {
+  const stars=[[40,30],[120,55],[210,20],[370,45],[500,15],[620,60],[740,25],[800,50]];
+  ctx.fillStyle='rgba(255,255,220,.6)';
+  stars.forEach(([x,y])=>{ ctx.beginPath(); ctx.arc(x,y,1.2,0,Math.PI*2); ctx.fill(); });
+}
+
+function drawGround() {
+  const g=ctx.createLinearGradient(0,groundY,0,H);
+  g.addColorStop(0,'#3d6826'); g.addColorStop(.1,'#2e5218'); g.addColorStop(1,'#1a2e0c');
+  ctx.fillStyle=g; ctx.fillRect(0,groundY,W,H-groundY);
+  ctx.strokeStyle='#5a9438'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(0,groundY); ctx.lineTo(W,groundY); ctx.stroke();
+  // grass
+  ctx.strokeStyle='#6ab845'; ctx.lineWidth=1.5;
+  for (let gx=180;gx<W;gx+=30) {
+    const s=Math.sin(gx*.3)*3;
+    ctx.beginPath();
+    ctx.moveTo(gx+s,groundY); ctx.lineTo(gx+s-3,groundY-6);
+    ctx.moveTo(gx+s,groundY); ctx.lineTo(gx+s+3,groundY-6);
+    ctx.moveTo(gx+s,groundY); ctx.lineTo(gx+s,groundY-8);
+    ctx.stroke();
+  }
+}
+
+function drawCatapult() {
+  // wheels
+  [slingX-22, slingX+10].forEach(wx=>{
+    ctx.fillStyle='#2e1a08';
+    ctx.beginPath(); ctx.arc(wx,groundY+8,11,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#555'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(wx,groundY+8,11,0,Math.PI*2); ctx.stroke();
+  });
+  // axle
+  ctx.strokeStyle='#7a5a30'; ctx.lineWidth=5;
+  ctx.beginPath(); ctx.moveTo(slingX-33,groundY+8); ctx.lineTo(slingX+21,groundY+8); ctx.stroke();
+  // frame
+  ctx.strokeStyle='#7a4a1a'; ctx.lineWidth=9; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(slingX-22,groundY); ctx.lineTo(slingX-4,slingY+18); ctx.lineTo(slingX+16,groundY);
+  ctx.stroke();
+  // arm
+  ctx.strokeStyle='#5b3010'; ctx.lineWidth=7;
+  ctx.beginPath(); ctx.moveTo(slingX-4,slingY+18); ctx.lineTo(slingX,slingY-28); ctx.stroke();
+  // sling lines
+  ctx.strokeStyle='#8b6030'; ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(slingX-10,slingY-20); ctx.lineTo(proj.x,proj.y);
+  ctx.lineTo(slingX+10,slingY-20); ctx.stroke();
+  // tip
+  ctx.fillStyle='#3a1a05';
+  ctx.beginPath(); ctx.arc(slingX,slingY-28,5,0,Math.PI*2); ctx.fill();
+}
+
+function drawProj() {
+  ctx.fillStyle='rgba(0,0,0,.2)';
+  ctx.beginPath(); ctx.ellipse(proj.x,groundY+3,R+2,4,0,0,Math.PI*2); ctx.fill();
+  const sg=ctx.createRadialGradient(proj.x-4,proj.y-4,2,proj.x,proj.y,R);
+  sg.addColorStop(0,'#bbb'); sg.addColorStop(.5,'#777'); sg.addColorStop(1,'#333');
+  ctx.fillStyle=sg;
+  ctx.beginPath(); ctx.arc(proj.x,proj.y,R,0,Math.PI*2); ctx.fill();
+}
+
+function drawTrail() {
+  if (trail.length<2) return;
+  // base trail
+  ctx.setLineDash([4,6]);
+  ctx.strokeStyle='rgba(255,255,150,0.25)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  trail.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  if (!settled || trail.length<3) return;
+
+  // find Hmax point (min y in canvas = highest real)
+  let hmaxIdx=0;
+  trail.forEach((p,i)=>{ if(p.y<trail[hmaxIdx].y) hmaxIdx=i; });
+  const hp=trail[hmaxIdx];
+
+  // vertical dashed line from ground to Hmax
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle='rgba(96,165,250,0.7)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(hp.x,groundY); ctx.lineTo(hp.x,hp.y); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Hmax label box
+  const hmLabel=`H_max = ${realHmax} m`;
+  ctx.font='bold 12px Lora, serif';
+  const tw=ctx.measureText(hmLabel).width;
+  const bx=hp.x+8, by=hp.y-8;
+  ctx.fillStyle='rgba(10,20,50,.82)';
+  roundRect(ctx, bx-4, by-16, tw+10, 22, 4);
+  ctx.fill();
+  ctx.strokeStyle='rgba(96,165,250,.6)'; ctx.lineWidth=1;
+  roundRect(ctx, bx-4, by-16, tw+10, 22, 4);
+  ctx.stroke();
+  ctx.fillStyle='#93c5fd';
+  ctx.fillText(hmLabel, bx+1, by);
+
+  // horizontal arrow showing height
+  ctx.strokeStyle='rgba(96,165,250,.5)'; ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(hp.x-2,hp.y); ctx.lineTo(hp.x-2,groundY);
+  ctx.stroke();
+
+  // time label (fraction of trail → approx time mark)
+  const tLabel=`t = ${realThmax} s`;
+  ctx.font='12px Lora, serif';
+  const tw2=ctx.measureText(tLabel).width;
+  const tx=hp.x - tw2/2 - 4, ty=groundY+22;
+  ctx.fillStyle='rgba(10,20,50,.82)';
+  roundRect(ctx,tx-2,ty-14,tw2+12,20,4); ctx.fill();
+  ctx.strokeStyle='rgba(240,192,64,.5)'; ctx.lineWidth=1;
+  roundRect(ctx,tx-2,ty-14,tw2+12,20,4); ctx.stroke();
+  ctx.fillStyle='#fde68a';
+  ctx.fillText(tLabel, tx+4, ty);
+
+  // dot at hmax
+  ctx.fillStyle='#60a5fa';
+  ctx.beginPath(); ctx.arc(hp.x,hp.y,5,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(hp.x,hp.y,5,0,Math.PI*2); ctx.stroke();
+}
+
+function roundRect(ctx,x,y,w,h,r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function drawTarget() {
+  if (!target.alive) return;
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.fillRect(target.x+4,target.y+4,target.w,target.h);
+  // body
+  ctx.fillStyle='#c0392b'; ctx.fillRect(target.x,target.y,target.w,target.h);
+  // window
+  ctx.fillStyle='#8b0000';
+  ctx.fillRect(target.x+target.w*.25,target.y+target.h*.2,target.w*.5,target.h*.3);
+  // label
+  ctx.fillStyle='#fff'; ctx.font='bold 11px Cinzel,serif';
+  ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.fillText('ALVO',target.x+target.w/2,target.y+target.h-3);
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+}
+
+function drawGuide() {
+  if (!dragging||launched) return;
+  const powerX=(slingX-proj.x)*.18, powerY=(slingY-proj.y)*.18;
+  const localGrav = G_REAL/SCALE/FPS_ADJ;
+  let px=slingX,py=slingY,vx=powerX,vy=powerY;
+  ctx.setLineDash([5,8]); ctx.strokeStyle='rgba(255,255,180,.22)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(px,py);
+  for(let i=0;i<80;i++){
+    vy+=localGrav; px+=vx; py+=vy;
+    if(py>groundY) break;
+    ctx.lineTo(px,py);
+  }
+  ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth=1;
+}
+
+function drawPresetCard() {
+  if (launched || settled) return;
+  const cx = slingX + 60, cy = slingY - 60;
+  const lines = [
+    { label: 'v₀ =', val: presetV0 + ' m/s', color: '#fde68a' },
+    { label: 'θ  =', val: presetAngle + '°',   color: '#93c5fd' },
+    { label: 'g  =', val: '10 m/s²',            color: '#86efac' },
+  ];
+  const bw = 148, bh = 74, br = 7;
+  ctx.fillStyle = 'rgba(8,16,40,.88)';
+  roundRect(ctx, cx, cy, bw, bh, br); ctx.fill();
+  ctx.strokeStyle = '#f0c04060'; ctx.lineWidth = 1.2;
+  roundRect(ctx, cx, cy, bw, bh, br); ctx.stroke();
+
+  ctx.font = 'bold 11px Cinzel, serif';
+  ctx.fillStyle = '#f0c040';
+  ctx.fillText('DADOS DO LANÇAMENTO', cx + 8, cy + 16);
+
+  ctx.font = '12px Lora, serif';
+  lines.forEach((l, i) => {
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText(l.label, cx + 8, cy + 34 + i * 16);
+    ctx.fillStyle = l.color;
+    ctx.fillText(l.val, cx + 46, cy + 34 + i * 16);
+  });
+
+  // seta apontando para a pedra
+  ctx.strokeStyle = '#f0c04080'; ctx.lineWidth = 1;
+  ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.moveTo(cx, cy + bh/2); ctx.lineTo(proj.x + R + 4, proj.y); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawParticles() {
+  particles.forEach(p=>{
+    ctx.globalAlpha=p.life;
+    ctx.fillStyle=p.color;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+}
+
+// ════════════════════════════════════════
+//  MAIN LOOP
+// ════════════════════════════════════════
+function render() {
+  ctx.clearRect(0,0,W,H);
+  drawSky(); drawStars(); drawGround();
+  drawTarget(); drawTrail(); drawGuide();
+  drawCatapult(); drawPresetCard(); drawProj(); drawParticles();
+}
+
+function loop() { update(); updateParticles(); render(); requestAnimationFrame(loop); }
+
+// ════════════════════════════════════════
+//  INPUT
+// ════════════════════════════════════════
+function getPos(e) {
+  const r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width, sy=canvas.height/r.height;
+  if(e.touches) return { x:(e.touches[0].clientX-r.left)*sx, y:(e.touches[0].clientY-r.top)*sy };
+  return { x:(e.clientX-r.left)*sx, y:(e.clientY-r.top)*sy };
+}
+
+canvas.addEventListener('mousedown', e=>{
+  if(launched||settled) return;
+  const m=getPos(e);
+  const dx=m.x-proj.x, dy=m.y-proj.y;
+  if(Math.sqrt(dx*dx+dy*dy)<=R+14) dragging=true;
+});
+canvas.addEventListener('mousemove', e=>{
+  if(!dragging||launched) return;
+  e.preventDefault();
+  const m=getPos(e), maxS=95;
+  let dx=m.x-slingX, dy=m.y-slingY;
+  const d=Math.sqrt(dx*dx+dy*dy);
+  if(d>maxS){dx=(dx/d)*maxS;dy=(dy/d)*maxS;}
+  proj.x=slingX+dx; proj.y=slingY+dy;
+});
+canvas.addEventListener('mouseup', e=>{
+  if(!dragging||launched) return;
+  const powerX=slingX-proj.x, powerY=slingY-proj.y;
+  if(Math.abs(powerX)<5&&Math.abs(powerY)<5){dragging=false;resetProj();return;}
+  setupPhysics();
+  launched=true; dragging=false;
+});
+canvas.addEventListener('mouseleave', ()=>{ if(dragging&&!launched) resetProj(); });
+canvas.addEventListener('touchstart', e=>{ if(launched||settled)return; e.preventDefault();
+  const m=getPos(e);const dx=m.x-proj.x,dy=m.y-proj.y;
+  if(Math.sqrt(dx*dx+dy*dy)<=R+18)dragging=true; },{passive:false});
+canvas.addEventListener('touchmove', e=>{ if(!dragging||launched)return; e.preventDefault();
+  const m=getPos(e),maxS=95; let dx=m.x-slingX,dy=m.y-slingY;
+  const d=Math.sqrt(dx*dx+dy*dy); if(d>maxS){dx=(dx/d)*maxS;dy=(dy/d)*maxS;}
+  proj.x=slingX+dx;proj.y=slingY+dy; },{passive:false});
+canvas.addEventListener('touchend', e=>{ if(!dragging||launched)return; e.preventDefault();
+  const powerX=slingX-proj.x,powerY=slingY-proj.y;
+  if(Math.abs(powerX)<5&&Math.abs(powerY)<5){dragging=false;resetProj();return;}
+  setupPhysics();
+  launched=true;dragging=false; },{passive:false});
+
+// ════════════════════════════════════════
+//  QUIZ CORRECTION
+// ════════════════════════════════════════
+function numClose(a, b, tol=0.15) {
+  // tolerância de 15% ou 0.3 unidades
+  return Math.abs(a-b) <= Math.max(tol*Math.abs(b), 0.3);
+}
+
+btnCheck.addEventListener('click', ()=>{
+  const aHmax  = parseFloat(inpHmax.value);
+  const aThmax = parseFloat(inpThmax.value);
+  const fbH    = document.getElementById('fb-hmax');
+  const fbT    = document.getElementById('fb-thmax');
+
+  let okH=false, okT=false, pts=0;
+
+  // Hmax
+  if(isNaN(aHmax)) {
+    fbH.textContent='⚠️ Digite um valor numérico.'; fbH.className='quiz-feedback err';
+    inpHmax.className='err';
+  } else if(numClose(aHmax, realHmax)) {
+    fbH.textContent=`✅ Correto! H_max = ${realHmax} m`; fbH.className='quiz-feedback ok';
+    inpHmax.className='ok'; okH=true; pts+=10;
+  } else {
+    fbH.textContent=`❌ Sua resposta: ${aHmax} m — Esperado: ~${realHmax} m`; fbH.className='quiz-feedback err';
+    inpHmax.className='err';
+  }
+
+  // Thmax
+  if(isNaN(aThmax)) {
+    fbT.textContent='⚠️ Digite um valor numérico.'; fbT.className='quiz-feedback err';
+    inpThmax.className='err';
+  } else if(numClose(aThmax, realThmax)) {
+    fbT.textContent=`✅ Correto! t = ${realThmax} s`; fbT.className='quiz-feedback ok';
+    inpThmax.className='ok'; okT=true; pts+=10;
+  } else {
+    fbT.textContent=`❌ Sua resposta: ${aThmax} s — Esperado: ~${realThmax} s`; fbT.className='quiz-feedback err';
+    inpThmax.className='err';
+  }
+
+  if(pts>0) { score+=pts; hits++; scoreEl.textContent=score; hitsEl.textContent=hits; }
+  if(okH&&okT) flash('🏆 Perfeito! +'+pts+' pontos!','#22c55e');
+  else if(pts>0) flash('👍 Parcialmente certo! +'+pts,'#f0c040');
+  else flash('📚 Tente novamente ou veja o gabarito','#ef4444');
+
+  // gabarito
+  gabaritoEl.style.display='block';
+  gabaritoEl.innerHTML=`
+    <b>📋 Gabarito completo</b><br>
+    <span class="step">Dados: v₀ = ${realV0} m/s | θ = ${realAngle}° | g = 10 m/s²</span><br>
+    <span class="step">v₀ₓ = ${realV0} · cos(${realAngle}°) = <b>${realV0x} m/s</b></span><br>
+    <span class="step">v₀ᵧ = ${realV0} · sen(${realAngle}°) = <b>${realV0y} m/s</b></span><br><br>
+    <span class="step"><b>H_max</b> = v₀ᵧ² / (2g) = ${realV0y}² / 20 = <b style="color:#60a5fa">${realHmax} m</b></span><br>
+    <span class="step"><b>t_Hmax</b> = v₀ᵧ / g = ${realV0y} / 10 = <b style="color:#fde68a">${realThmax} s</b></span>
+  `;
+
+  btnCheck.disabled=true;
+  inpHmax.disabled=true; inpThmax.disabled=true;
+});
+
+btnReset.addEventListener('click', fullReset);
+
+// ════════════════════════════════════════
+//  START
+// ════════════════════════════════════════
+pickPreset();
+loop();
+</script>
 </body>
 </html>
+
