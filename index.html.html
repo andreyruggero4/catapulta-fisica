@@ -1,0 +1,279 @@
+
+<h2 class="sr-only">Simulador interativo de catapulta com lançamento oblíquo</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brown:#7c3d12;--brown-light:#a85522;--brown-dark:#4a2008;
+  --sky1:#c8e8f8;--sky2:#e8f6ff;--ground:#5a9e3a;
+  --blue:#185FA5;--blue-bg:#E6F1FB;
+  --red:#D85A30;--red-dark:#993C1D;
+}
+body{font-family:var(--font-sans);background:linear-gradient(160deg,#ddf0fa 0%,#f0f8ff 100%);min-height:100vh}
+.page{max-width:720px;margin:0 auto;padding:1rem}
+
+.header{text-align:center;margin-bottom:1rem}
+.header h1{font-size:22px;font-weight:500;color:var(--brown-dark);letter-spacing:-0.01em}
+.header p{font-size:13px;color:#888780;margin-top:2px}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.panel{background:#fff;border:0.5px solid #D3D1C7;border-radius:14px;padding:1rem 1.2rem}
+.panel-title{font-size:11px;font-weight:500;color:#888780;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:10px}
+
+.field{margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.field label{font-size:13px;color:#5F5E5A;min-width:90px;flex-shrink:0}
+.field input{flex:1;padding:6px 10px;font-size:14px;font-weight:500;border:0.5px solid #D3D1C7;border-radius:8px;background:#fafaf9;color:#2C2C2A;outline:none;min-width:0}
+.field input:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(24,95,165,0.15);background:#fff}
+.field .unit{font-size:12px;color:#888780;white-space:nowrap}
+
+.eq-area{background:linear-gradient(135deg,#fff9f5 0%,#fff3ec 100%);border:0.5px solid #FAC775;border-radius:10px;padding:10px 14px;text-align:center;margin-bottom:12px}
+.eq-label{font-size:11px;color:#BA7517;font-weight:500;margin-bottom:3px}
+.eq-val{font-size:18px;font-weight:500;color:var(--brown-dark);font-family:var(--font-mono);letter-spacing:-0.02em}
+
+.btn{width:100%;padding:9px 14px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;border:0.5px solid}
+.btn-primary{background:var(--brown);color:#fff;border-color:var(--brown-dark)}
+.btn-primary:hover{background:var(--brown-light)}
+.btn-launch{background:var(--blue-bg);color:var(--blue);border-color:#B5D4F4}
+.btn-launch:hover{background:#cde2f7}
+.btn-launch:disabled{opacity:0.45;cursor:not-allowed}
+.btn-check{background:#EAF3DE;color:#3B6D11;border-color:#C0DD97}
+.btn-check:hover{background:#d5ecb8}
+
+.scene-wrap{border-radius:14px;overflow:hidden;border:0.5px solid #D3D1C7;margin-bottom:10px;background:#c8e8f8;position:relative}
+canvas{display:block;width:100%}
+
+.challenge{background:#fff;border:0.5px solid #D3D1C7;border-radius:14px;padding:1rem 1.2rem}
+.ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.feedback{font-size:13px;min-height:18px;display:flex;gap:12px;flex-wrap:wrap}
+.ok{color:#3B6D11;font-weight:500}.err{color:#993C1D;font-weight:500}
+
+.step-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:500;background:var(--brown);color:#fff;margin-right:6px;flex-shrink:0}
+.step-row{display:flex;align-items:center;margin-bottom:10px}
+.step-row .panel-title{margin-bottom:0}
+</style>
+
+<div class="page">
+  <div class="header">
+    <h1>Catapulta Interativa</h1>
+    <p>Lançamento oblíquo — função do 2º grau</p>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="step-row">
+        <span class="step-badge">1</span>
+        <span class="panel-title">Defina os parâmetros</span>
+      </div>
+      <div class="field">
+        <label>Velocidade</label>
+        <input type="number" id="vel" value="30" min="1" max="200">
+        <span class="unit">m/s</span>
+      </div>
+      <div class="field">
+        <label>Ângulo</label>
+        <input type="number" id="ang" value="45" min="1" max="89">
+        <span class="unit">graus</span>
+      </div>
+      <div class="field">
+        <label>Gravidade</label>
+        <input type="number" id="grav" value="9.8" min="0.1" max="25" step="0.1">
+        <span class="unit">m/s²</span>
+      </div>
+      <button class="btn btn-primary" onclick="preparar()" style="margin-top:6px">Gerar equação</button>
+    </div>
+
+    <div class="panel" style="display:flex;flex-direction:column;justify-content:space-between">
+      <div>
+        <div class="step-row">
+          <span class="step-badge">2</span>
+          <span class="panel-title">Equação vertical</span>
+        </div>
+        <div class="eq-area">
+          <div class="eq-label">h(t) =</div>
+          <div class="eq-val" id="eq">v₀y·t − (g/2)·t²</div>
+        </div>
+        <div style="font-size:12px;color:#888780;margin-bottom:10px;line-height:1.5">
+          Onde <b style="color:#5F5E5A">v₀y = v₀·sen(θ)</b> é a componente vertical e <b style="color:#5F5E5A">g</b> é a gravidade.
+        </div>
+      </div>
+      <button class="btn btn-launch" id="btnLancar" onclick="lancar()" disabled>
+        ▶ Lançar projétil
+      </button>
+    </div>
+  </div>
+
+  <div class="scene-wrap">
+    <canvas id="cv" height="260"></canvas>
+  </div>
+
+  <div class="challenge">
+    <div class="step-row" style="margin-bottom:10px">
+      <span class="step-badge">3</span>
+      <span class="panel-title">Desafio — calcule e verifique</span>
+    </div>
+    <div class="ch-grid">
+      <div class="field" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <label style="min-width:unset;font-size:13px;color:#5F5E5A">Tempo para altura máxima (s)</label>
+        <input type="number" id="tAluno" step="0.01" placeholder="sua resposta" style="width:100%">
+      </div>
+      <div class="field" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <label style="min-width:unset;font-size:13px;color:#5F5E5A">Altura máxima (m)</label>
+        <input type="number" id="hAluno" step="0.01" placeholder="sua resposta" style="width:100%">
+      </div>
+    </div>
+    <button class="btn btn-check" onclick="verificar()">Verificar respostas</button>
+    <div class="feedback" id="fb" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<script>
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+cv.width=cv.offsetWidth||680;
+
+let VX=0,VY=0,G=9.8,tMax=0,hMax=0,pronto=false,animando=false,traj=[];
+
+const W=()=>cv.width, H=()=>cv.height;
+const SCALE=()=>W()/130;
+const GND=()=>H()-48;
+const mx=x=>52+x*SCALE();
+const my=y=>GND()-y*SCALE();
+
+function preparar(){
+  const v=parseFloat(document.getElementById('vel').value)||30;
+  const a=parseFloat(document.getElementById('ang').value)||45;
+  G=parseFloat(document.getElementById('grav').value)||9.8;
+  const r=a*Math.PI/180;
+  VX=v*Math.cos(r); VY=v*Math.sin(r);
+  tMax=VY/G; hMax=VY*VY/(2*G);
+  document.getElementById('eq').textContent=`${VY.toFixed(2)}·t − ${(G/2).toFixed(2)}·t²`;
+  traj=[]; pronto=true; animando=false;
+  document.getElementById('btnLancar').disabled=false;
+  document.getElementById('fb').innerHTML='';
+  draw();
+}
+
+function draw(){
+  ctx.clearRect(0,0,W(),H());
+  drawSky();
+  drawGround();
+  drawCastle();
+  drawTrajectory();
+  drawBall();
+}
+
+function drawSky(){
+  const g=ctx.createLinearGradient(0,0,0,GND());
+  g.addColorStop(0,'#b8ddf5'); g.addColorStop(1,'#e4f3fd');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W(),GND());
+  // nuvenszinha
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  cloud(W()*0.55,40,30); cloud(W()*0.75,28,20);
+}
+function cloud(cx,cy,r){
+  ctx.beginPath();
+  ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.arc(cx+r*0.8,cy-r*0.3,r*0.75,0,Math.PI*2);
+  ctx.arc(cx+r*1.6,cy,r*0.65,0,Math.PI*2);
+  ctx.fill();
+}
+function drawGround(){
+  ctx.fillStyle='#5a9e3a'; ctx.fillRect(0,GND(),W(),H()-GND());
+  ctx.fillStyle='#4a8a2e'; ctx.fillRect(0,GND(),W(),6);
+  ctx.fillStyle='#7ac455'; 
+  for(let i=0;i<W();i+=18){
+    ctx.beginPath(); ctx.arc(i+9,GND(),5,Math.PI,0); ctx.fill();
+  }
+}
+function drawCastle(){
+  const bx=8,gnd=GND();
+  ctx.fillStyle='#888780';
+  ctx.fillRect(bx,gnd-38,44,38);
+  ctx.fillStyle='#6b6a66';
+  ctx.fillRect(bx,gnd-38,44,5);
+  [0,12,24,36].forEach(dx=>{
+    if(dx===12) return;
+    ctx.fillStyle='#888780';
+    ctx.fillRect(bx+dx,gnd-50,10,14);
+  });
+  ctx.fillStyle='#5F5E5A';
+  ctx.fillRect(bx+15,gnd-38,14,22);
+  ctx.fillStyle='#333';
+  ctx.beginPath(); ctx.arc(bx+22,gnd-16,7,Math.PI,0); ctx.fill();
+  ctx.fillStyle='#E24B4A';
+  ctx.fillRect(bx+20,gnd-55,3,18);
+  ctx.fillStyle='#E24B4A';
+  ctx.beginPath(); ctx.moveTo(bx+23,gnd-55); ctx.lineTo(bx+32,gnd-50); ctx.lineTo(bx+23,gnd-46); ctx.fill();
+  ctx.fillStyle='rgba(180,200,220,0.35)';
+  [[bx+4,gnd-30,8,10],[bx+32,gnd-30,8,10]].forEach(([rx,ry,rw,rh])=>{
+    ctx.beginPath(); ctx.ellipse(rx+rw/2,ry+rh/2,rw/2,rh/2,0,0,Math.PI*2); ctx.fill();
+  });
+  // braço catapulta
+  ctx.strokeStyle='#7c3d12'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(bx+22,gnd-38); ctx.lineTo(bx+38,gnd-60); ctx.stroke();
+  ctx.fillStyle='#7c3d12';
+  ctx.beginPath(); ctx.arc(bx+38,gnd-60,5,0,Math.PI*2); ctx.fill();
+}
+function drawTrajectory(){
+  if(traj.length<2) return;
+  ctx.strokeStyle='rgba(24,95,165,0.55)'; ctx.lineWidth=2;
+  ctx.setLineDash([5,5]);
+  ctx.beginPath();
+  traj.forEach((p,i)=>i===0?ctx.moveTo(mx(p.x),my(p.y)):ctx.lineTo(mx(p.x),my(p.y)));
+  ctx.stroke(); ctx.setLineDash([]);
+  // ponto apex
+  if(traj.length>5){
+    let peak=traj.reduce((a,b)=>b.y>a.y?b:a);
+    ctx.strokeStyle='rgba(186,117,23,0.7)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(mx(peak.x),my(peak.y)); ctx.lineTo(mx(peak.x),my(0)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(186,117,23,0.8)';
+    ctx.beginPath(); ctx.arc(mx(peak.x),my(peak.y),4,0,Math.PI*2); ctx.fill();
+  }
+}
+function drawBall(){
+  let bx=traj.length?traj[traj.length-1].x:0;
+  let by=traj.length?traj[traj.length-1].y:0;
+  const g2=ctx.createRadialGradient(mx(bx)-2,my(by)-2,1,mx(bx),my(by),9);
+  g2.addColorStop(0,'#f08060'); g2.addColorStop(1,'#993C1D');
+  ctx.beginPath(); ctx.arc(mx(bx),my(by),9,0,Math.PI*2);
+  ctx.fillStyle=g2; ctx.fill();
+  ctx.strokeStyle='#7c2810'; ctx.lineWidth=1.5; ctx.stroke();
+}
+
+function lancar(){
+  if(!pronto||animando) return;
+  animando=true; traj=[];
+  document.getElementById('btnLancar').disabled=true;
+  let t=0;
+  function step(){
+    t+=0.035;
+    const xm=VX*t, ym=VY*t-0.5*G*t*t;
+    traj.push({x:xm,y:ym});
+    draw();
+    if(ym>=-0.3 && mx(xm)<W()-10){
+      requestAnimationFrame(step);
+    } else {
+      animando=false;
+      document.getElementById('btnLancar').disabled=false;
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function verificar(){
+  if(!pronto){document.getElementById('fb').innerHTML='<span class="err">Gere a equação primeiro (passo 1).</span>';return;}
+  const tA=parseFloat(document.getElementById('tAluno').value);
+  const hA=parseFloat(document.getElementById('hAluno').value);
+  if(isNaN(tA)||isNaN(hA)){document.getElementById('fb').innerHTML='<span class="err">Preencha os dois campos.</span>';return;}
+  let msg='';
+  msg+=Math.abs(tA-tMax)<0.1?'<span class="ok">✓ Tempo correto!</span>':
+    `<span class="err">✗ Tempo: resposta correta = ${tMax.toFixed(2)} s</span>`;
+  msg+='&nbsp;&nbsp;';
+  msg+=Math.abs(hA-hMax)<0.5?'<span class="ok">✓ Altura correta!</span>':
+    `<span class="err">✗ Altura: resposta correta = ${hMax.toFixed(2)} m</span>`;
+  document.getElementById('fb').innerHTML=msg;
+}
+
+window.addEventListener('resize',()=>{cv.width=cv.offsetWidth;draw();});
+preparar();
+</script>
