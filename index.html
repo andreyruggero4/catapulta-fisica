@@ -1,4 +1,12 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catapulta Interativa — Lançamento Oblíquo</title>
+</head>
+<body>
 <h2 class="sr-only">Simulador interativo de catapulta com lançamento oblíquo</h2>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -8,7 +16,7 @@
   --blue:#185FA5;--blue-bg:#E6F1FB;
   --red:#D85A30;--red-dark:#993C1D;
 }
-body{font-family:var(--font-sans);background:linear-gradient(160deg,#ddf0fa 0%,#f0f8ff 100%);min-height:100vh}
+body{font-family:sans-serif;background:linear-gradient(160deg,#ddf0fa 0%,#f0f8ff 100%);min-height:100vh}
 .page{max-width:720px;margin:0 auto;padding:1rem}
 
 .header{text-align:center;margin-bottom:1rem}
@@ -27,7 +35,7 @@ body{font-family:var(--font-sans);background:linear-gradient(160deg,#ddf0fa 0%,#
 
 .eq-area{background:linear-gradient(135deg,#fff9f5 0%,#fff3ec 100%);border:0.5px solid #FAC775;border-radius:10px;padding:10px 14px;text-align:center;margin-bottom:12px}
 .eq-label{font-size:11px;color:#BA7517;font-weight:500;margin-bottom:3px}
-.eq-val{font-size:18px;font-weight:500;color:var(--brown-dark);font-family:var(--font-mono);letter-spacing:-0.02em}
+.eq-val{font-size:18px;font-weight:500;color:var(--brown-dark);font-family:monospace;letter-spacing:-0.02em}
 
 .btn{width:100%;padding:9px 14px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;border:0.5px solid}
 .btn-primary{background:var(--brown);color:#fff;border-color:var(--brown-dark)}
@@ -123,6 +131,15 @@ canvas{display:block;width:100%}
     <button class="btn btn-check" onclick="verificar()">Verificar respostas</button>
     <div class="feedback" id="fb" style="margin-top:8px"></div>
   </div>
+
+  <footer style="text-align:center;padding:14px 0 6px;border-top:0.5px solid #D3D1C7;margin-top:12px">
+    <p style="font-size:11px;color:#888780;letter-spacing:0.04em">
+      Desenvolvido por <strong style="color:#5F5E5A;font-weight:500">Andrey F. Ruggero</strong>
+      &nbsp;·&nbsp;
+      em parceria com <strong style="color:#5F5E5A;font-weight:500">Andrea Pavan Perin</strong>
+    </p>
+  </footer>
+
 </div>
 
 <script>
@@ -165,7 +182,6 @@ function drawSky(){
   const g=ctx.createLinearGradient(0,0,0,GND());
   g.addColorStop(0,'#b8ddf5'); g.addColorStop(1,'#e4f3fd');
   ctx.fillStyle=g; ctx.fillRect(0,0,W(),GND());
-  // nuvenszinha
   ctx.fillStyle='rgba(255,255,255,0.7)';
   cloud(W()*0.55,40,30); cloud(W()*0.75,28,20);
 }
@@ -179,7 +195,7 @@ function cloud(cx,cy,r){
 function drawGround(){
   ctx.fillStyle='#5a9e3a'; ctx.fillRect(0,GND(),W(),H()-GND());
   ctx.fillStyle='#4a8a2e'; ctx.fillRect(0,GND(),W(),6);
-  ctx.fillStyle='#7ac455'; 
+  ctx.fillStyle='#7ac455';
   for(let i=0;i<W();i+=18){
     ctx.beginPath(); ctx.arc(i+9,GND(),5,Math.PI,0); ctx.fill();
   }
@@ -207,7 +223,6 @@ function drawCastle(){
   [[bx+4,gnd-30,8,10],[bx+32,gnd-30,8,10]].forEach(([rx,ry,rw,rh])=>{
     ctx.beginPath(); ctx.ellipse(rx+rw/2,ry+rh/2,rw/2,rh/2,0,0,Math.PI*2); ctx.fill();
   });
-  // braço catapulta
   ctx.strokeStyle='#7c3d12'; ctx.lineWidth=4;
   ctx.beginPath(); ctx.moveTo(bx+22,gnd-38); ctx.lineTo(bx+38,gnd-60); ctx.stroke();
   ctx.fillStyle='#7c3d12';
@@ -220,7 +235,6 @@ function drawTrajectory(){
   ctx.beginPath();
   traj.forEach((p,i)=>i===0?ctx.moveTo(mx(p.x),my(p.y)):ctx.lineTo(mx(p.x),my(p.y)));
   ctx.stroke(); ctx.setLineDash([]);
-  // ponto apex
   if(traj.length>5){
     let peak=traj.reduce((a,b)=>b.y>a.y?b:a);
     ctx.strokeStyle='rgba(186,117,23,0.7)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
@@ -277,3 +291,5 @@ function verificar(){
 window.addEventListener('resize',()=>{cv.width=cv.offsetWidth;draw();});
 preparar();
 </script>
+</body>
+</html>
