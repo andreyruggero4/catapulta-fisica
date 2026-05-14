@@ -17,8 +17,122 @@
   --red:#D85A30;--red-dark:#993C1D;
 }
 body{font-family:sans-serif;background:linear-gradient(160deg,#ddf0fa 0%,#f0f8ff 100%);min-height:100vh}
-.page{max-width:720px;margin:0 auto;padding:1rem}
 
+/* ── Layout principal: sidebar + conteúdo ── */
+.layout{display:flex;min-height:100vh;align-items:flex-start}
+
+/* ── Sidebar de perguntas ── */
+.sidebar{
+  width:52px;
+  min-height:100vh;
+  background:rgba(255,255,255,0.6);
+  border-right:0.5px solid rgba(211,209,199,0.6);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:18px 0 12px;
+  gap:6px;
+  position:sticky;
+  top:0;
+  transition:width .3s ease;
+  overflow:hidden;
+  backdrop-filter:blur(6px);
+  z-index:100;
+}
+.sidebar.open{width:340px}
+
+.sidebar-toggle{
+  width:34px;height:34px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.85);
+  border:0.5px solid #D3D1C7;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+  flex-shrink:0;
+  margin-bottom:8px;
+  transition:all .2s;
+  box-shadow:0 1px 4px rgba(0,0,0,0.08);
+}
+.sidebar-toggle:hover{background:#E6F1FB;border-color:#B5D4F4}
+
+.sidebar-label{
+  font-size:10px;font-weight:500;color:#888780;
+  letter-spacing:.1em;text-transform:uppercase;
+  writing-mode:vertical-rl;
+  text-orientation:mixed;
+  white-space:nowrap;
+  opacity:1;
+  transition:opacity .15s;
+  margin-top:4px;
+}
+.sidebar.open .sidebar-label{display:none}
+
+.sidebar-content{
+  display:none;
+  flex-direction:column;
+  width:100%;
+  padding:0 14px;
+  overflow-y:auto;
+  max-height:calc(100vh - 80px);
+}
+.sidebar.open .sidebar-content{display:flex}
+
+.sidebar-title{
+  font-size:13px;font-weight:500;color:var(--brown-dark);
+  margin-bottom:10px;
+  padding-bottom:8px;
+  border-bottom:0.5px solid #D3D1C7;
+  display:flex;align-items:center;justify-content:space-between;
+}
+
+.q-intro{
+  font-size:12px;color:#5F5E5A;line-height:1.6;
+  background:#fffdf7;
+  border:0.5px solid #FAC775;
+  border-radius:8px;
+  padding:8px 10px;
+  margin-bottom:10px;
+}
+.q-intro strong{color:var(--brown-dark)}
+
+.q-item{border-bottom:0.5px solid #e8e6e0}
+.q-item:last-child{border-bottom:none}
+
+.q-toggle{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:9px 0;
+  cursor:pointer;
+  background:transparent;border:none;
+  text-align:left;font-size:12px;
+  color:#444441;font-family:inherit;
+  width:100%;line-height:1.45;
+}
+.q-toggle:hover .q-text{color:var(--blue)}
+
+.q-num{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;border-radius:50%;
+  font-size:10px;font-weight:500;
+  background:#E6F1FB;color:#185FA5;
+  flex-shrink:0;margin-top:1px;
+}
+.q-text{flex:1;color:#5F5E5A}
+.q-arrow{font-size:10px;color:#B4B2A9;transition:transform .2s;margin-top:4px;flex-shrink:0}
+
+.q-answer{
+  max-height:0;overflow:hidden;
+  transition:max-height .3s ease;
+  font-size:12px;color:#888780;
+  line-height:1.65;
+  padding:0 0 0 26px;
+}
+.q-answer.open{max-height:180px;padding-bottom:10px}
+
+/* ── Área principal ── */
+.main{flex:1;padding:1rem;max-width:720px;margin:0 auto}
+
+.page{max-width:720px;margin:0 auto}
 .header{text-align:center;margin-bottom:1rem}
 .header h1{font-size:22px;font-weight:500;color:var(--brown-dark);letter-spacing:-0.01em}
 .header p{font-size:13px;color:#888780;margin-top:2px}
@@ -59,90 +173,167 @@ canvas{display:block;width:100%}
 .step-row .panel-title{margin-bottom:0}
 </style>
 
-<div class="page">
-  <div class="header">
-    <h1>Catapulta Interativa</h1>
-    <p>Lançamento oblíquo — função do 2º grau</p>
+<div class="layout">
+
+  <!-- ═══ SIDEBAR DE PERGUNTAS ═══ -->
+  <div class="sidebar" id="sidebar">
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Mostrar perguntas" id="sidebarBtn">❓</button>
+    <span class="sidebar-label">Questões</span>
+
+    <div class="sidebar-content" id="sidebarContent">
+      <div class="sidebar-title">
+        Questões de reflexão
+        <span style="font-size:11px;color:#888780;font-weight:400">clique para expandir</span>
+      </div>
+
+      <div class="q-intro">
+        <strong>Atividade:</strong> Pesquise a gravidade em cada planeta. Faça os lançamentos mantendo a mesma velocidade e ângulo, variando apenas a gravidade.
+      </div>
+
+      <div id="qlist"></div>
+    </div>
   </div>
 
-  <div class="grid">
-    <div class="panel">
-      <div class="step-row">
-        <span class="step-badge">1</span>
-        <span class="panel-title">Defina os parâmetros</span>
+  <!-- ═══ CONTEÚDO PRINCIPAL ═══ -->
+  <div class="main">
+    <div class="page">
+      <div class="header">
+        <h1>Catapulta Interativa</h1>
+        <p>Lançamento oblíquo — função do 2º grau</p>
       </div>
-      <div class="field">
-        <label>Velocidade</label>
-        <input type="number" id="vel" value="30" min="1" max="200">
-        <span class="unit">m/s</span>
-      </div>
-      <div class="field">
-        <label>Ângulo</label>
-        <input type="number" id="ang" value="45" min="1" max="89">
-        <span class="unit">graus</span>
-      </div>
-      <div class="field">
-        <label>Gravidade</label>
-        <input type="number" id="grav" value="9.8" min="0.1" max="25" step="0.1">
-        <span class="unit">m/s²</span>
-      </div>
-      <button class="btn btn-primary" onclick="preparar()" style="margin-top:6px">Gerar equação</button>
-    </div>
 
-    <div class="panel" style="display:flex;flex-direction:column;justify-content:space-between">
-      <div>
-        <div class="step-row">
-          <span class="step-badge">2</span>
-          <span class="panel-title">Equação vertical</span>
+      <div class="grid">
+        <div class="panel">
+          <div class="step-row">
+            <span class="step-badge">1</span>
+            <span class="panel-title">Defina os parâmetros</span>
+          </div>
+          <div class="field">
+            <label>Velocidade</label>
+            <input type="number" id="vel" value="30" min="1" max="200">
+            <span class="unit">m/s</span>
+          </div>
+          <div class="field">
+            <label>Ângulo</label>
+            <input type="number" id="ang" value="45" min="1" max="89">
+            <span class="unit">graus</span>
+          </div>
+          <div class="field">
+            <label>Gravidade</label>
+            <input type="number" id="grav" value="9.8" min="0.1" max="25" step="0.1">
+            <span class="unit">m/s²</span>
+          </div>
+          <button class="btn btn-primary" onclick="preparar()" style="margin-top:6px">Gerar equação</button>
         </div>
-        <div class="eq-area">
-          <div class="eq-label">h(t) =</div>
-          <div class="eq-val" id="eq">v₀y·t − (g/2)·t²</div>
+
+        <div class="panel" style="display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <div class="step-row">
+              <span class="step-badge">2</span>
+              <span class="panel-title">Equação vertical</span>
+            </div>
+            <div class="eq-area">
+              <div class="eq-label">h(t) =</div>
+              <div class="eq-val" id="eq">v₀y·t − (g/2)·t²</div>
+            </div>
+            <div style="font-size:12px;color:#888780;margin-bottom:10px;line-height:1.5">
+              Onde <b style="color:#5F5E5A">v₀y = v₀·sen(θ)</b> é a componente vertical e <b style="color:#5F5E5A">g</b> é a gravidade.
+            </div>
+          </div>
+          <button class="btn btn-launch" id="btnLancar" onclick="lancar()" disabled>
+            ▶ Lançar projétil
+          </button>
         </div>
-        <div style="font-size:12px;color:#888780;margin-bottom:10px;line-height:1.5">
-          Onde <b style="color:#5F5E5A">v₀y = v₀·sen(θ)</b> é a componente vertical e <b style="color:#5F5E5A">g</b> é a gravidade.
+      </div>
+
+      <div class="scene-wrap">
+        <canvas id="cv" height="260"></canvas>
+      </div>
+
+      <div class="challenge">
+        <div class="step-row" style="margin-bottom:10px">
+          <span class="step-badge">3</span>
+          <span class="panel-title">Desafio — calcule e verifique</span>
         </div>
+        <div class="ch-grid">
+          <div class="field" style="flex-direction:column;align-items:flex-start;gap:4px">
+            <label style="min-width:unset;font-size:13px;color:#5F5E5A">Tempo para altura máxima (s)</label>
+            <input type="number" id="tAluno" step="0.01" placeholder="sua resposta" style="width:100%">
+          </div>
+          <div class="field" style="flex-direction:column;align-items:flex-start;gap:4px">
+            <label style="min-width:unset;font-size:13px;color:#5F5E5A">Altura máxima (m)</label>
+            <input type="number" id="hAluno" step="0.01" placeholder="sua resposta" style="width:100%">
+          </div>
+        </div>
+        <button class="btn btn-check" onclick="verificar()">Verificar respostas</button>
+        <div class="feedback" id="fb" style="margin-top:8px"></div>
       </div>
-      <button class="btn btn-launch" id="btnLancar" onclick="lancar()" disabled>
-        ▶ Lançar projétil
-      </button>
+
+      <footer style="text-align:center;padding:14px 0 6px;border-top:0.5px solid #D3D1C7;margin-top:12px">
+        <p style="font-size:11px;color:#888780;letter-spacing:0.04em">
+          Desenvolvido por <strong style="color:#5F5E5A;font-weight:500">Andrey F. Ruggero</strong>
+          &nbsp;·&nbsp;
+          em parceria com <strong style="color:#5F5E5A;font-weight:500">Andrea Pavan Perin</strong>
+        </p>
+      </footer>
+
     </div>
   </div>
-
-  <div class="scene-wrap">
-    <canvas id="cv" height="260"></canvas>
-  </div>
-
-  <div class="challenge">
-    <div class="step-row" style="margin-bottom:10px">
-      <span class="step-badge">3</span>
-      <span class="panel-title">Desafio — calcule e verifique</span>
-    </div>
-    <div class="ch-grid">
-      <div class="field" style="flex-direction:column;align-items:flex-start;gap:4px">
-        <label style="min-width:unset;font-size:13px;color:#5F5E5A">Tempo para altura máxima (s)</label>
-        <input type="number" id="tAluno" step="0.01" placeholder="sua resposta" style="width:100%">
-      </div>
-      <div class="field" style="flex-direction:column;align-items:flex-start;gap:4px">
-        <label style="min-width:unset;font-size:13px;color:#5F5E5A">Altura máxima (m)</label>
-        <input type="number" id="hAluno" step="0.01" placeholder="sua resposta" style="width:100%">
-      </div>
-    </div>
-    <button class="btn btn-check" onclick="verificar()">Verificar respostas</button>
-    <div class="feedback" id="fb" style="margin-top:8px"></div>
-  </div>
-
-  <footer style="text-align:center;padding:14px 0 6px;border-top:0.5px solid #D3D1C7;margin-top:12px">
-    <p style="font-size:11px;color:#888780;letter-spacing:0.04em">
-      Desenvolvido por <strong style="color:#5F5E5A;font-weight:500">Andrey F. Ruggero</strong>
-      &nbsp;·&nbsp;
-      em parceria com <strong style="color:#5F5E5A;font-weight:500">Andrea Pavan Perin</strong>
-    </p>
-  </footer>
-
 </div>
 
 <script>
+/* ══ Dados das perguntas ══ */
+const QUESTIONS=[
+  {q:"O que acontece com a trajetória da bola quando aumentamos a gravidade?",
+   a:"Com maior gravidade, a força para baixo é mais intensa. A parábola fica mais curta e 'fechada' — a bola sobe menos e cai mais rápido."},
+  {q:"Em qual planeta a bola fica mais tempo no ar?",
+   a:"Nos planetas com menor gravidade (Marte: 3,71 m/s² ou Mercúrio: 3,7 m/s²). O tempo de voo é dado por 2·v₀y / g — quanto menor g, maior o tempo."},
+  {q:"Em qual planeta a bola atinge a maior altura?",
+   a:"Também em Marte ou Mercúrio. A altura máxima é v₀y² / (2g) — com g menor, a altura aumenta."},
+  {q:"A trajetória fica mais \"aberta\" ou mais \"fechada\" em planetas com maior gravidade?",
+   a:"Mais fechada. Em Júpiter (g ≈ 24,8 m/s²), a parábola é bem comprimida. Em Marte, a trajetória é muito mais aberta e alongada."},
+  {q:"A bola cai mais rapidamente em qual planeta?",
+   a:"Em Júpiter, pois possui a maior gravidade do Sistema Solar (≈ 24,8 m/s²). A aceleração de queda é diretamente proporcional a g."},
+  {q:"Como a gravidade altera o formato da parábola?",
+   a:"Maior g → parábola mais curvada e comprimida verticalmente. Menor g → parábola mais suave e esticada. A gravidade define a 'abertura' da curva."},
+  {q:"Qual planeta apresenta a trajetória mais curta? Por quê?",
+   a:"Júpiter. Sua gravidade elevada puxa a bola rapidamente de volta ao solo, resultando em menor tempo de voo, menor altura e menor alcance."},
+  {q:"Se a gravidade não existisse, o que aconteceria com a bola?",
+   a:"A bola seguiria em linha reta para sempre, sem curvar. Não haveria parábola — apenas movimento retilíneo uniforme na direção do lançamento."}
+];
+
+/* Renderiza perguntas na sidebar */
+const ql=document.getElementById('qlist');
+QUESTIONS.forEach((item,i)=>{
+  const div=document.createElement('div');
+  div.className='q-item';
+  div.innerHTML=`
+    <button class="q-toggle" onclick="toggleQ(${i})">
+      <span class="q-num">${i+1}</span>
+      <span class="q-text">${item.q}</span>
+      <span class="q-arrow" id="qarr${i}">▼</span>
+    </button>
+    <div class="q-answer" id="qans${i}">${item.a}</div>`;
+  ql.appendChild(div);
+});
+
+function toggleQ(i){
+  const ans=document.getElementById('qans'+i);
+  const arr=document.getElementById('qarr'+i);
+  const open=ans.classList.toggle('open');
+  arr.style.transform=open?'rotate(180deg)':'';
+}
+
+/* Toggle sidebar */
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  const btn=document.getElementById('sidebarBtn');
+  const isOpen=sb.classList.toggle('open');
+  btn.title=isOpen?'Fechar perguntas':'Mostrar perguntas';
+  btn.textContent=isOpen?'✕':'❓';
+}
+
+/* ══ Simulação da catapulta ══ */
 const cv=document.getElementById('cv');
 const ctx=cv.getContext('2d');
 cv.width=cv.offsetWidth||680;
@@ -171,19 +362,15 @@ function preparar(){
 
 function draw(){
   ctx.clearRect(0,0,W(),H());
-  drawSky();
-  drawGround();
-  drawCastle();
-  drawTrajectory();
-  drawBall();
+  drawSky();drawGround();drawCastle();drawTrajectory();drawBall();
 }
 
 function drawSky(){
   const g=ctx.createLinearGradient(0,0,0,GND());
-  g.addColorStop(0,'#b8ddf5'); g.addColorStop(1,'#e4f3fd');
-  ctx.fillStyle=g; ctx.fillRect(0,0,W(),GND());
+  g.addColorStop(0,'#b8ddf5');g.addColorStop(1,'#e4f3fd');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W(),GND());
   ctx.fillStyle='rgba(255,255,255,0.7)';
-  cloud(W()*0.55,40,30); cloud(W()*0.75,28,20);
+  cloud(W()*0.55,40,30);cloud(W()*0.75,28,20);
 }
 function cloud(cx,cy,r){
   ctx.beginPath();
@@ -193,80 +380,75 @@ function cloud(cx,cy,r){
   ctx.fill();
 }
 function drawGround(){
-  ctx.fillStyle='#5a9e3a'; ctx.fillRect(0,GND(),W(),H()-GND());
-  ctx.fillStyle='#4a8a2e'; ctx.fillRect(0,GND(),W(),6);
+  ctx.fillStyle='#5a9e3a';ctx.fillRect(0,GND(),W(),H()-GND());
+  ctx.fillStyle='#4a8a2e';ctx.fillRect(0,GND(),W(),6);
   ctx.fillStyle='#7ac455';
   for(let i=0;i<W();i+=18){
-    ctx.beginPath(); ctx.arc(i+9,GND(),5,Math.PI,0); ctx.fill();
+    ctx.beginPath();ctx.arc(i+9,GND(),5,Math.PI,0);ctx.fill();
   }
 }
 function drawCastle(){
   const bx=8,gnd=GND();
-  ctx.fillStyle='#888780';
-  ctx.fillRect(bx,gnd-38,44,38);
-  ctx.fillStyle='#6b6a66';
-  ctx.fillRect(bx,gnd-38,44,5);
+  ctx.fillStyle='#888780';ctx.fillRect(bx,gnd-38,44,38);
+  ctx.fillStyle='#6b6a66';ctx.fillRect(bx,gnd-38,44,5);
   [0,12,24,36].forEach(dx=>{
-    if(dx===12) return;
-    ctx.fillStyle='#888780';
-    ctx.fillRect(bx+dx,gnd-50,10,14);
+    if(dx===12)return;
+    ctx.fillStyle='#888780';ctx.fillRect(bx+dx,gnd-50,10,14);
   });
-  ctx.fillStyle='#5F5E5A';
-  ctx.fillRect(bx+15,gnd-38,14,22);
+  ctx.fillStyle='#5F5E5A';ctx.fillRect(bx+15,gnd-38,14,22);
   ctx.fillStyle='#333';
-  ctx.beginPath(); ctx.arc(bx+22,gnd-16,7,Math.PI,0); ctx.fill();
+  ctx.beginPath();ctx.arc(bx+22,gnd-16,7,Math.PI,0);ctx.fill();
+  ctx.fillStyle='#E24B4A';ctx.fillRect(bx+20,gnd-55,3,18);
   ctx.fillStyle='#E24B4A';
-  ctx.fillRect(bx+20,gnd-55,3,18);
-  ctx.fillStyle='#E24B4A';
-  ctx.beginPath(); ctx.moveTo(bx+23,gnd-55); ctx.lineTo(bx+32,gnd-50); ctx.lineTo(bx+23,gnd-46); ctx.fill();
+  ctx.beginPath();ctx.moveTo(bx+23,gnd-55);ctx.lineTo(bx+32,gnd-50);ctx.lineTo(bx+23,gnd-46);ctx.fill();
   ctx.fillStyle='rgba(180,200,220,0.35)';
   [[bx+4,gnd-30,8,10],[bx+32,gnd-30,8,10]].forEach(([rx,ry,rw,rh])=>{
-    ctx.beginPath(); ctx.ellipse(rx+rw/2,ry+rh/2,rw/2,rh/2,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath();ctx.ellipse(rx+rw/2,ry+rh/2,rw/2,rh/2,0,0,Math.PI*2);ctx.fill();
   });
-  ctx.strokeStyle='#7c3d12'; ctx.lineWidth=4;
-  ctx.beginPath(); ctx.moveTo(bx+22,gnd-38); ctx.lineTo(bx+38,gnd-60); ctx.stroke();
+  ctx.strokeStyle='#7c3d12';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(bx+22,gnd-38);ctx.lineTo(bx+38,gnd-60);ctx.stroke();
   ctx.fillStyle='#7c3d12';
-  ctx.beginPath(); ctx.arc(bx+38,gnd-60,5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath();ctx.arc(bx+38,gnd-60,5,0,Math.PI*2);ctx.fill();
 }
 function drawTrajectory(){
-  if(traj.length<2) return;
-  ctx.strokeStyle='rgba(24,95,165,0.55)'; ctx.lineWidth=2;
+  if(traj.length<2)return;
+  ctx.strokeStyle='rgba(24,95,165,0.55)';ctx.lineWidth=2;
   ctx.setLineDash([5,5]);
   ctx.beginPath();
   traj.forEach((p,i)=>i===0?ctx.moveTo(mx(p.x),my(p.y)):ctx.lineTo(mx(p.x),my(p.y)));
-  ctx.stroke(); ctx.setLineDash([]);
+  ctx.stroke();ctx.setLineDash([]);
   if(traj.length>5){
     let peak=traj.reduce((a,b)=>b.y>a.y?b:a);
-    ctx.strokeStyle='rgba(186,117,23,0.7)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
-    ctx.beginPath(); ctx.moveTo(mx(peak.x),my(peak.y)); ctx.lineTo(mx(peak.x),my(0)); ctx.stroke();
+    ctx.strokeStyle='rgba(186,117,23,0.7)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(mx(peak.x),my(peak.y));ctx.lineTo(mx(peak.x),my(0));ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle='rgba(186,117,23,0.8)';
-    ctx.beginPath(); ctx.arc(mx(peak.x),my(peak.y),4,0,Math.PI*2); ctx.fill();
+    ctx.beginPath();ctx.arc(mx(peak.x),my(peak.y),4,0,Math.PI*2);ctx.fill();
   }
 }
 function drawBall(){
   let bx=traj.length?traj[traj.length-1].x:0;
   let by=traj.length?traj[traj.length-1].y:0;
   const g2=ctx.createRadialGradient(mx(bx)-2,my(by)-2,1,mx(bx),my(by),9);
-  g2.addColorStop(0,'#f08060'); g2.addColorStop(1,'#993C1D');
-  ctx.beginPath(); ctx.arc(mx(bx),my(by),9,0,Math.PI*2);
-  ctx.fillStyle=g2; ctx.fill();
-  ctx.strokeStyle='#7c2810'; ctx.lineWidth=1.5; ctx.stroke();
+  g2.addColorStop(0,'#f08060');g2.addColorStop(1,'#993C1D');
+  ctx.beginPath();ctx.arc(mx(bx),my(by),9,0,Math.PI*2);
+  ctx.fillStyle=g2;ctx.fill();
+  ctx.strokeStyle='#7c2810';ctx.lineWidth=1.5;ctx.stroke();
 }
 
 function lancar(){
-  if(!pronto||animando) return;
-  animando=true; traj=[];
+  if(!pronto||animando)return;
+  animando=true;traj=[];
   document.getElementById('btnLancar').disabled=true;
   let t=0;
   function step(){
     t+=0.035;
-    const xm=VX*t, ym=VY*t-0.5*G*t*t;
+    const xm=VX*t,ym=VY*t-0.5*G*t*t;
     traj.push({x:xm,y:ym});
     draw();
-    if(ym>=-0.3 && mx(xm)<W()-10){
+    if(ym>=-0.3&&mx(xm)<W()-10){
       requestAnimationFrame(step);
-    } else {
+    }else{
       animando=false;
       document.getElementById('btnLancar').disabled=false;
     }
@@ -292,4 +474,5 @@ window.addEventListener('resize',()=>{cv.width=cv.offsetWidth;draw();});
 preparar();
 </script>
 </body>
+</html>
 </html>
